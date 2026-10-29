@@ -12,6 +12,9 @@ add_library(quirewise_audio STATIC ${QW_SOURCES})
 add_library(Quirewise::Audio ALIAS quirewise_audio)
 set_target_properties(quirewise_audio PROPERTIES EXPORT_NAME Audio POSITION_INDEPENDENT_CODE ON)
 target_compile_features(quirewise_audio PUBLIC c_std_11)
+target_compile_definitions(quirewise_audio PRIVATE
+    QUIREWISE_PLATFORM_UNICODE_C_IMPLEMENTATION=1
+    QUIREWISE_ENCRYPTED_MUSIC_PARSER_ONLY=1)
 target_link_libraries(quirewise_audio
     PUBLIC Quirewise::Compression
     PRIVATE Quirewise::Crypto)
