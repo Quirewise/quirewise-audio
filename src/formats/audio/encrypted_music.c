@@ -10,7 +10,9 @@
 #include "../../backends/tool_bridge.h"
 #endif
 
-#include "aes.h"
+#include "ncm_crypto.h"
+
+#include <quirewise/crypto.h>
 #include "kgm_database.h"
 
 #include <quirewise/compression.h>
@@ -414,19 +416,6 @@ static void audio_secure_zero(void *memory, size_t size)
     }
 }
 
-static int decrypt_aes_ecb(uint8_t *data, size_t size, const uint8_t key[16])
-{
-    struct AES_ctx ctx = {0};
-    int ok = 0;
-    if (!data || !key || (size & 15u)) goto done;
-    AES_init_ctx(&ctx, key);
-    for (size_t i = 0; i < size; i += 16u) AES_ECB_decrypt(&ctx, data + i);
-    ok = 1;
-done:
-    audio_secure_zero(&ctx, sizeof(ctx));
-    return ok;
-}
-
 static void ncm_json_skip_space(QwNcmJsonParser *parser)
 {
     while (parser->position < parser->size) {
@@ -751,7 +740,7 @@ static void ncm_decode_metadata(const uint8_t *input, size_t size,
         !base64_decode(encoded + sizeof(prefix) - 1u,
                        size - (sizeof(prefix) - 1u), &plain, &plain_size) ||
         !plain_size || (plain_size & 15u) ||
-        !decrypt_aes_ecb(plain, plain_size, meta_key)) {
+        !qw_audio_ncm_decrypt_aes_ecb(plain, plain_size, meta_key)) {
         goto done;
     }
     {
@@ -838,7 +827,7 @@ static int ncm_decrypt(const uint8_t *input, size_t size,
     if (!key_blob) { rc = QW_STATUS_ERR_OUT_OF_MEMORY; goto done; }
     for (size_t i = 0; i < key_len; ++i) key_blob[i] = input[pos + i] ^ 0x64u;
     pos += key_len;
-    if (!decrypt_aes_ecb(key_blob, key_len, core_key)) goto done;
+    if (!qw_audio_ncm_decrypt_aes_ecb(key_blob, key_len, core_key)) goto done;
     {
         uint8_t pad = key_blob[key_len - 1u];
         if (!pad || pad > 16u || pad > key_len) goto done;
@@ -1400,25 +1389,11 @@ static int base64_decode(const uint8_t *text, size_t size, uint8_t **out, size_t
     return 1;
 }
 
-static uint32_t tea_mix(uint32_t value, uint32_t sum, uint32_t k1, uint32_t k2)
+static int tea_decrypt_block(const uint8_t input[8], const uint8_t key[16],
+                             uint8_t output[8])
 {
-    return (((value << 4) + k1) ^ (sum + value) ^ ((value >> 5) + k2));
-}
-
-static void tea_decrypt_block(const uint8_t input[8], const uint8_t key[16], uint8_t output[8])
-{
-    uint32_t v0 = qw_read_u32_be(input), v1 = qw_read_u32_be(input + 4u);
-    uint32_t k[4] = {qw_read_u32_be(key), qw_read_u32_be(key+4), qw_read_u32_be(key+8), qw_read_u32_be(key+12)};
-    uint32_t sum = 0x9e3779b9u * 16u;
-    for (unsigned i = 0; i < 16u; ++i) {
-        v1 -= tea_mix(v0, sum, k[2], k[3]);
-        v0 -= tea_mix(v1, sum, k[0], k[1]);
-        sum -= 0x9e3779b9u;
-    }
-    output[0]=(uint8_t)(v0>>24); output[1]=(uint8_t)(v0>>16);
-    output[2]=(uint8_t)(v0>>8); output[3]=(uint8_t)v0;
-    output[4]=(uint8_t)(v1>>24); output[5]=(uint8_t)(v1>>16);
-    output[6]=(uint8_t)(v1>>8); output[7]=(uint8_t)v1;
+    memcpy(output, input, 8u);
+    return qw_crypto_tea64_ecb_decrypt(key, output, 8u) == QW_CRYPTO_OK;
 }
 
 static int tea_cbc_decrypt(const uint8_t *input, size_t size, const uint8_t key[16],
@@ -1432,17 +1407,45 @@ static int tea_cbc_decrypt(const uint8_t *input, size_t size, const uint8_t key[
     for (size_t pos = 0; pos < size; pos += 8u) {
         uint8_t mixed[8], decoded[8], next_iv[8];
         for (size_t j = 0; j < 8u; ++j) mixed[j] = input[pos+j] ^ iv_cur[j];
-        tea_decrypt_block(mixed, key, decoded);
+        if (!tea_decrypt_block(mixed, key, decoded)) {
+            audio_secure_zero(mixed, sizeof(mixed));
+            audio_secure_zero(decoded, sizeof(decoded));
+            audio_secure_zero(next_iv, sizeof(next_iv));
+            audio_secure_zero(iv_prev, sizeof(iv_prev));
+            audio_secure_zero(iv_cur, sizeof(iv_cur));
+            audio_secure_zero(plain, size);
+            free(plain);
+            return 0;
+        }
         memcpy(next_iv, decoded, 8u);
         for (size_t j = 0; j < 8u; ++j) plain[pos+j] = decoded[j] ^ iv_prev[j];
         memcpy(iv_prev, input + pos, 8u);
         memcpy(iv_cur, next_iv, 8u);
+        audio_secure_zero(mixed, sizeof(mixed));
+        audio_secure_zero(decoded, sizeof(decoded));
+        audio_secure_zero(next_iv, sizeof(next_iv));
     }
     body_start = 1u + (plain[0] & 7u) + 2u;
     body_end = size - 7u;
-    if (body_start > body_end) { free(plain); return 0; }
-    for (size_t i = body_end; i < size; ++i) if (plain[i] != 0) { free(plain); return 0; }
+    if (body_start > body_end) {
+        audio_secure_zero(iv_prev, sizeof(iv_prev));
+        audio_secure_zero(iv_cur, sizeof(iv_cur));
+        audio_secure_zero(plain, size);
+        free(plain);
+        return 0;
+    }
+    for (size_t i = body_end; i < size; ++i) {
+        if (plain[i] != 0) {
+            audio_secure_zero(iv_prev, sizeof(iv_prev));
+            audio_secure_zero(iv_cur, sizeof(iv_cur));
+            audio_secure_zero(plain, size);
+            free(plain);
+            return 0;
+        }
+    }
     memmove(plain, plain + body_start, body_end - body_start);
+    audio_secure_zero(iv_prev, sizeof(iv_prev));
+    audio_secure_zero(iv_cur, sizeof(iv_cur));
     *out = plain; *out_size = body_end - body_start;
     return 1;
 }

@@ -1,16 +1,9 @@
-#include "aes.h"
+#include "ncm_crypto.h"
+
+#include <quirewise/crypto.h>
 
 #include <stdio.h>
 #include <string.h>
-
-static void test_secure_zero(void *memory, size_t size)
-{
-    volatile uint8_t *bytes = (volatile uint8_t *)memory;
-    while (size > 0u) {
-        *bytes++ = 0;
-        --size;
-    }
-}
 
 static int test_aes128_ecb_decrypt_known_answer(void)
 {
@@ -38,22 +31,16 @@ static int test_aes128_ecb_decrypt_known_answer(void)
         0xf6, 0x9f, 0x24, 0x45, 0xdf, 0x4f, 0x9b, 0x17,
         0xad, 0x2b, 0x41, 0x7b, 0xe6, 0x6c, 0x37, 0x10
     };
-    struct AES_ctx ctx = {0};
     uint8_t actual[sizeof(ciphertext)];
-    size_t offset;
 
     memcpy(actual, ciphertext, sizeof(actual));
-    AES_init_ctx(&ctx, key);
-    for (offset = 0u; offset < sizeof(actual); offset += AES_BLOCKLEN)
-        AES_ECB_decrypt(&ctx, actual + offset);
-    if (memcmp(actual, expected_plaintext, sizeof(actual)) != 0) {
+    if (!qw_audio_ncm_decrypt_aes_ecb(actual, sizeof(actual), key) ||
+        memcmp(actual, expected_plaintext, sizeof(actual)) != 0) {
         fprintf(stderr, "AES-128 ECB known-answer vector failed\n");
-        test_secure_zero(&ctx, sizeof(ctx));
-        test_secure_zero(actual, sizeof(actual));
+        qw_crypto_secure_zero(actual, sizeof(actual));
         return 0;
     }
-    test_secure_zero(&ctx, sizeof(ctx));
-    test_secure_zero(actual, sizeof(actual));
+    qw_crypto_secure_zero(actual, sizeof(actual));
     return 1;
 }
 

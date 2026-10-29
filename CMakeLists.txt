@@ -4,31 +4,29 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CTest)
 find_package(QuirewiseCompression CONFIG REQUIRED)
+if(NOT TARGET Quirewise::Crypto)
+    find_package(QuirewiseCrypto CONFIG REQUIRED)
+endif()
 file(GLOB_RECURSE QW_SOURCES CONFIGURE_DEPENDS src/*.c src/*.cpp)
 add_library(quirewise_audio STATIC ${QW_SOURCES})
-target_sources(quirewise_audio PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/aes/aes.c")
 add_library(Quirewise::Audio ALIAS quirewise_audio)
 set_target_properties(quirewise_audio PROPERTIES EXPORT_NAME Audio POSITION_INDEPENDENT_CODE ON)
 target_compile_features(quirewise_audio PUBLIC c_std_11)
-# NCM only uses AES-128 ECB; compile the vendored implementation and its caller
-# with the same private mode selection.
-set_source_files_properties(
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/aes/aes.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/formats/audio/encrypted_music.c"
-    PROPERTIES COMPILE_DEFINITIONS "CBC=0;CTR=0;ECB=1")
-target_link_libraries(quirewise_audio PUBLIC Quirewise::Compression)
+target_link_libraries(quirewise_audio
+    PUBLIC Quirewise::Compression
+    PRIVATE Quirewise::Crypto)
 target_include_directories(quirewise_audio PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/core ${CMAKE_CURRENT_SOURCE_DIR}/src/formats ${CMAKE_CURRENT_SOURCE_DIR}/src/backends ${CMAKE_CURRENT_SOURCE_DIR}/third_party/aes)
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/core ${CMAKE_CURRENT_SOURCE_DIR}/src/formats ${CMAKE_CURRENT_SOURCE_DIR}/src/backends)
 if(BUILD_TESTING)
     add_executable(quirewise_audio_aes_tests tests/test_aes.c)
     target_compile_features(quirewise_audio_aes_tests PRIVATE c_std_11)
-    target_compile_definitions(quirewise_audio_aes_tests PRIVATE CBC=0 CTR=0 ECB=1)
     target_include_directories(quirewise_audio_aes_tests PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/aes")
-    target_link_libraries(quirewise_audio_aes_tests PRIVATE Quirewise::Audio)
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/formats/audio")
+    target_link_libraries(quirewise_audio_aes_tests PRIVATE
+        Quirewise::Audio
+        Quirewise::Crypto)
     add_test(NAME quirewise_audio_aes_known_answer
         COMMAND quirewise_audio_aes_tests)
 endif()
