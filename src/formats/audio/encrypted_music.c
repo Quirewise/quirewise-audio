@@ -13,7 +13,7 @@
 #include "aes.h"
 #include "kgm_database.h"
 
-#include <lzma.h>
+#include <quirewise/compression.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1114,8 +1114,6 @@ static int decompress_kugou_key(size_t wanted, const char *key_path,
     uint8_t *compressed = NULL, *decoded = NULL;
     size_t compressed_size = 0;
     FILE *file = NULL;
-    lzma_stream stream = LZMA_STREAM_INIT;
-    lzma_ret lrc;
     int ok = 0;
     if (!wanted || wanted > 73155904u) return 0;
     if (key_path && *key_path) file = open_music_file_utf8(key_path);
@@ -1146,19 +1144,9 @@ have_key_file:
     compressed = (uint8_t *)malloc(compressed_size);
     decoded = (uint8_t *)malloc(wanted);
     if (!compressed || !decoded || fread(compressed, 1, compressed_size, file) != compressed_size) goto done;
-    lrc = lzma_stream_decoder(&stream, UINT64_MAX, 0);
-    if (lrc != LZMA_OK) goto done;
-    stream.next_in = compressed;
-    stream.avail_in = compressed_size;
-    stream.next_out = decoded;
-    stream.avail_out = wanted;
-    for (;;) {
-        lrc = lzma_code(&stream, LZMA_FINISH);
-        if (stream.avail_out == 0) { ok = 1; break; }
-        if (lrc == LZMA_STREAM_END) break;
-        if (lrc != LZMA_OK) break;
-    }
-    lzma_end(&stream);
+    ok = qw_compression_inflate_xz_prefix(
+        compressed, compressed_size, decoded, wanted,
+        256u * 1024u * 1024u);
 done:
     if (file) fclose(file);
     free(compressed);

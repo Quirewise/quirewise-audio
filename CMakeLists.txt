@@ -2,11 +2,13 @@
 project(QuirewiseAudio VERSION 0.1.0 LANGUAGES C)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+find_package(QuirewiseCompression CONFIG REQUIRED)
 file(GLOB_RECURSE QW_SOURCES CONFIGURE_DEPENDS src/*.c src/*.cpp)
 add_library(quirewise_audio STATIC ${QW_SOURCES})
 add_library(Quirewise::Audio ALIAS quirewise_audio)
 set_target_properties(quirewise_audio PROPERTIES EXPORT_NAME Audio POSITION_INDEPENDENT_CODE ON)
 target_compile_features(quirewise_audio PUBLIC c_std_11)
+target_link_libraries(quirewise_audio PUBLIC Quirewise::Compression)
 target_include_directories(quirewise_audio PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
