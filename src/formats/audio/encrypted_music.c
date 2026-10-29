@@ -404,13 +404,27 @@ QwInputFormat qw_encrypted_music_format_from_path_internal(const char *path)
     return QW_FORMAT_UNKNOWN;
 }
 
+static void audio_secure_zero(void *memory, size_t size)
+{
+    volatile uint8_t *bytes = (volatile uint8_t *)memory;
+    if (!bytes) return;
+    while (size > 0u) {
+        *bytes++ = 0;
+        --size;
+    }
+}
+
 static int decrypt_aes_ecb(uint8_t *data, size_t size, const uint8_t key[16])
 {
-    struct AES_ctx ctx;
-    if (!data || !key || (size & 15u)) return 0;
+    struct AES_ctx ctx = {0};
+    int ok = 0;
+    if (!data || !key || (size & 15u)) goto done;
     AES_init_ctx(&ctx, key);
     for (size_t i = 0; i < size; i += 16u) AES_ECB_decrypt(&ctx, data + i);
-    return 1;
+    ok = 1;
+done:
+    audio_secure_zero(&ctx, sizeof(ctx));
+    return ok;
 }
 
 static void ncm_json_skip_space(QwNcmJsonParser *parser)
@@ -810,17 +824,18 @@ static int ncm_decrypt(const uint8_t *input, size_t size,
                        QwConvertReport *report)
 {
     uint8_t *key_blob = NULL, *plain_key = NULL, *audio = NULL;
-    size_t pos = NCM_HEADER_SIZE, key_len, meta_len, image_space, image_size;
-    size_t plain_size, audio_size, key_size;
-    uint8_t sbox[256], box[256];
-    uint8_t core_key[16];
+    size_t pos = NCM_HEADER_SIZE, key_len = 0u, meta_len = 0u;
+    size_t image_space = 0u, image_size = 0u;
+    size_t plain_size = 0u, audio_size = 0u, key_size = 0u;
+    uint8_t sbox[256] = {0}, box[256] = {0};
+    uint8_t core_key[16] = {0};
     int rc = QW_STATUS_ERR_FORMAT;
     memcpy(core_key, ncm_core_key, sizeof(core_key));
     if (size < 14u || !valid_ncm(input, size)) goto done;
     key_len = qw_read_u32_le(input + pos); pos += 4u;
     if (!key_len || key_len > size - pos || (key_len & 15u)) goto done;
     key_blob = (uint8_t *)malloc(key_len);
-    if (!key_blob) return QW_STATUS_ERR_OUT_OF_MEMORY;
+    if (!key_blob) { rc = QW_STATUS_ERR_OUT_OF_MEMORY; goto done; }
     for (size_t i = 0; i < key_len; ++i) key_blob[i] = input[pos + i] ^ 0x64u;
     pos += key_len;
     if (!decrypt_aes_ecb(key_blob, key_len, core_key)) goto done;
@@ -876,6 +891,11 @@ static int ncm_decrypt(const uint8_t *input, size_t size,
     audio = NULL;
     if (rc != QW_STATUS_OK) set_note(report, "NCM output allocation failed");
 done:
+    if (key_blob) audio_secure_zero(key_blob, key_len);
+    if (audio) audio_secure_zero(audio, audio_size);
+    audio_secure_zero(sbox, sizeof(sbox));
+    audio_secure_zero(box, sizeof(box));
+    audio_secure_zero(core_key, sizeof(core_key));
     free(key_blob);
     free(audio);
     if (rc != QW_STATUS_OK && report && !report->note[0]) set_note(report, "NCM structure or encrypted key is invalid");

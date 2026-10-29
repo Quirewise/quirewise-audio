@@ -62,6 +62,16 @@ NOTE:   String length must be evenly divisible by 16byte (str_len % 16 == 0)
   #define MULTIPLY_AS_A_FUNCTION 0
 #endif
 
+static void aes_secure_zero(void *memory, size_t size)
+{
+  volatile uint8_t *bytes = (volatile uint8_t *)memory;
+  while (size > 0)
+  {
+    *bytes++ = 0;
+    --size;
+  }
+}
+
 
 
 
@@ -214,6 +224,7 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
     RoundKey[j + 2] = RoundKey[k + 2] ^ tempa[2];
     RoundKey[j + 3] = RoundKey[k + 3] ^ tempa[3];
   }
+  aes_secure_zero(tempa, sizeof(tempa));
 }
 
 void AES_init_ctx(struct AES_ctx* ctx, const uint8_t* key)
