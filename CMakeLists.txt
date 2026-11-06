@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.21)
 project(QuirewiseAudio VERSION 0.1.0 LANGUAGES C)
 option(QUIREWISE_BUILD_SHARED "Build Quirewise libraries as shared libraries" OFF)
 if(QUIREWISE_BUILD_SHARED)
@@ -48,6 +48,15 @@ if(BUILD_TESTING)
         $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
     add_test(NAME quirewise_audio_encrypted_music_kgm
         COMMAND quirewise_audio_encrypted_music_kgm_test)
+
+    add_executable(quirewise_audio_fuzz_smoke tests/audio_fuzz_smoke.c)
+    target_compile_features(quirewise_audio_fuzz_smoke PRIVATE c_std_11)
+    target_link_libraries(quirewise_audio_fuzz_smoke PRIVATE
+        Quirewise::Audio
+        Quirewise::Crypto
+        $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
+    add_test(NAME quirewise_audio_fuzz_smoke
+        COMMAND quirewise_audio_fuzz_smoke)
 endif()
 install(TARGETS quirewise_audio EXPORT QuirewiseAudioTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
