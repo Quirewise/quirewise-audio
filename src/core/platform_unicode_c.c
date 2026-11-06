@@ -1,4 +1,4 @@
-#include "platform_unicode.h"
+﻿#include "platform_unicode.h"
 
 #include <stdint.h>
 
@@ -143,7 +143,7 @@ static void unicode_write_utf8(char *output, size_t *index,
     }
 }
 
-ptrdiff_t qw_platform_utf16_to_utf8(const uint16_t *input,
+ptrdiff_t qw_audio_platform_utf16_to_utf8(const uint16_t *input,
                                     char *output,
                                     size_t output_capacity)
 {
@@ -162,7 +162,7 @@ ptrdiff_t qw_platform_utf16_to_utf8(const uint16_t *input,
     return required;
 }
 
-ptrdiff_t qw_platform_utf8_to_utf16(const char *input,
+ptrdiff_t qw_audio_platform_utf8_to_utf16(const char *input,
                                     uint16_t *output,
                                     size_t output_capacity)
 {
@@ -190,6 +190,6 @@ ptrdiff_t qw_platform_utf8_to_utf16(const char *input,
 
 #else
 
-typedef int qw_platform_unicode_c_translation_unit_not_empty;
+typedef int qw_audio_platform_unicode_c_translation_unit_not_empty;
 
 #endif

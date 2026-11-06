@@ -1,4 +1,4 @@
-#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+﻿#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
 #define _POSIX_C_SOURCE 200809L
 #endif
 
@@ -251,7 +251,7 @@ static FILE *open_music_file_utf8(const char *path)
     if (!path || !*path) return NULL;
 #if defined(_WIN32)
     {
-        wchar_t *wide_path = qw_platform_utf8_to_wide(path);
+        wchar_t *wide_path = qw_audio_platform_utf8_to_wide(path);
         FILE *file;
         if (!wide_path) return NULL;
         file = _wfopen(wide_path, L"rb");
