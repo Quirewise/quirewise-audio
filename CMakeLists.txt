@@ -38,6 +38,16 @@ if(BUILD_TESTING)
         Quirewise::Crypto)
     add_test(NAME quirewise_audio_aes_known_answer
         COMMAND quirewise_audio_aes_tests)
+
+    add_executable(quirewise_audio_encrypted_music_kgm_test
+        tests/encrypted_music_kgm_test.c)
+    target_compile_features(quirewise_audio_encrypted_music_kgm_test PRIVATE c_std_11)
+    target_link_libraries(quirewise_audio_encrypted_music_kgm_test PRIVATE
+        Quirewise::Audio
+        Quirewise::Crypto
+        $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
+    add_test(NAME quirewise_audio_encrypted_music_kgm
+        COMMAND quirewise_audio_encrypted_music_kgm_test)
 endif()
 install(TARGETS quirewise_audio EXPORT QuirewiseAudioTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"

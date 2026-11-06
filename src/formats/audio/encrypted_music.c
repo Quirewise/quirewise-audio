@@ -1,4 +1,4 @@
-﻿#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
 #define _POSIX_C_SOURCE 200809L
 #endif
 
@@ -1273,7 +1273,6 @@ static int kgm_decrypt(const uint8_t *input, size_t size,
         uint8_t mask = scramble((uint8_t)(pub[block] ^ kgm_mend[i % sizeof(kgm_mend)]));
         audio[i] = transformed ^ mask;
     }
-    free(pub);
     rc = set_output(audio, audio_size, out, out_size);
     audio = NULL;
 done:
