@@ -1,7 +1,7 @@
 #ifndef QUIREWISE_AUDIO_CAF_ILBC_PARSER_H
 #define QUIREWISE_AUDIO_CAF_ILBC_PARSER_H
 
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <stddef.h>
 #include <stdint.h>

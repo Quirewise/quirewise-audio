@@ -3,7 +3,7 @@
 #include "audio_custom_input.h"
 #include "audio_matroska_additions_parser.h"
 #include "quirewise/status.h"
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <stdlib.h>
 #include <string.h>

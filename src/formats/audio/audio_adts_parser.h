@@ -1,7 +1,7 @@
 #ifndef QUIREWISE_AUDIO_ADTS_PARSER_H
 #define QUIREWISE_AUDIO_ADTS_PARSER_H
 
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 #include "audio_adts_frame_parser.h"
 
 #include <stddef.h>

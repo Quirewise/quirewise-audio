@@ -1,7 +1,7 @@
 #ifndef QUIREWISE_AUDIO_WAVE_SUBFORMAT_H
 #define QUIREWISE_AUDIO_WAVE_SUBFORMAT_H
 
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <stddef.h>
 #include <stdint.h>

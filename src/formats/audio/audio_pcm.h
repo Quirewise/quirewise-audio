@@ -1,7 +1,7 @@
 #ifndef QUIREWISE_AUDIO_PCM_H
 #define QUIREWISE_AUDIO_PCM_H
 
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <stdio.h>
 

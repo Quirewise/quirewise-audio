@@ -2,7 +2,7 @@
 #define QUIREWISE_AUDIO_OGG_OPUS_PARSER_H
 
 #include "audio_ogg_container.h"
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <stddef.h>
 #include <stdint.h>

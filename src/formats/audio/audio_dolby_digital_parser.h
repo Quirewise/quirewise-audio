@@ -1,7 +1,7 @@
 #ifndef QUIREWISE_AUDIO_DOLBY_DIGITAL_PARSER_H
 #define QUIREWISE_AUDIO_DOLBY_DIGITAL_PARSER_H
 
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <stddef.h>
 #include <stdint.h>

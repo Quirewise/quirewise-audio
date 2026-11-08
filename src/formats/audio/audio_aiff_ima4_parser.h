@@ -1,7 +1,7 @@
 #ifndef QUIREWISE_AUDIO_AIFF_IMA4_PARSER_H
 #define QUIREWISE_AUDIO_AIFF_IMA4_PARSER_H
 
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <stddef.h>
 #include <stdint.h>

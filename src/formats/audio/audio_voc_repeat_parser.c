@@ -1,7 +1,7 @@
 #include "audio_voc_repeat_parser.h"
 
 #include "core/byte_utils.h"
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <string.h>
 

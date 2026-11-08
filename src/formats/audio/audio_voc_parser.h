@@ -1,7 +1,7 @@
 #ifndef QUIREWISE_AUDIO_VOC_PARSER_H
 #define QUIREWISE_AUDIO_VOC_PARSER_H
 
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 #include "audio_voc_repeat_parser.h"
 
 #include <stddef.h>

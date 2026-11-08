@@ -1,7 +1,7 @@
 #ifndef QUIREWISE_TOOL_BRIDGE_H
 #define QUIREWISE_TOOL_BRIDGE_H
 
-#include "quirewise/convert.h"
+#include "quirewise/format.h"
 
 #include <stddef.h>
 #include <stdint.h>
