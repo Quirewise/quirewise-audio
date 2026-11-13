@@ -379,12 +379,46 @@ static int audio_custom_next_aiff_g711_packet(QwAudioCustomInput *input,
         &input->packet_sample_position, packet);
 }
 
+/* Uncompressed PCM containers (WAV/RIFX/RF64/BW64/Wave64, AIFF/AIFC PCM,
+ * CAF LPCM, AU PCM) return their sample bytes unchanged. Packets are capped
+ * at 1 MiB and aligned to whole frames; `pts` and `duration` count frames. */
+static int audio_custom_next_pcm_packet(QwAudioCustomInput *input,
+                                        QwAudioCustomPacket *packet)
+{
+    const QwAudioPcmSource *pcm = &input->pcm;
+    size_t bytes_per_frame;
+    size_t max_bytes = 1u << 20;
+    size_t remaining;
+    size_t bytes;
+
+    if (!pcm->samples || !pcm->sample_bytes) return 0;
+    bytes_per_frame = (size_t)pcm->channels *
+                      (size_t)(pcm->container_bytes_per_sample
+                                   ? pcm->container_bytes_per_sample
+                                   : (uint8_t)((pcm->sample_bits + 7u) / 8u));
+    if (!bytes_per_frame) return QW_STATUS_ERR_UNSUPPORTED;
+    if (input->packet_position >= pcm->sample_bytes) return 0;
+    remaining = pcm->sample_bytes - input->packet_position;
+    max_bytes -= max_bytes % bytes_per_frame;
+    bytes = remaining > max_bytes ? max_bytes : remaining;
+    bytes -= bytes % bytes_per_frame;
+    if (!bytes) bytes = remaining; /* trailing partial frame */
+    packet->data = pcm->samples + input->packet_position;
+    packet->size = bytes;
+    packet->pts = input->packet_position / bytes_per_frame;
+    packet->duration = (uint32_t)(bytes / bytes_per_frame);
+    input->packet_position += bytes;
+    return 1;
+}
+
 int qw_audio_custom_input_next_packet(QwAudioCustomInput *input,
                                       QwAudioCustomPacket *packet)
 {
     if (!input || !packet) return QW_STATUS_ERR_INVALID_ARGUMENT;
     memset(packet, 0, sizeof(*packet));
     switch (input->kind) {
+    case QW_AUDIO_CUSTOM_INPUT_PCM:
+        return audio_custom_next_pcm_packet(input, packet);
     case QW_AUDIO_CUSTOM_INPUT_ASF_WMA:
         return qw_audio_custom_asf_input_next_packet(input, packet);
     case QW_AUDIO_CUSTOM_INPUT_MPC:

@@ -58,6 +58,13 @@ if(BUILD_TESTING)
         $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
     add_test(NAME quirewise_audio_fuzz_smoke
         COMMAND quirewise_audio_fuzz_smoke)
+
+    add_executable(quirewise_audio_wave_pcm_test tests/wave_pcm_test.c)
+    target_compile_features(quirewise_audio_wave_pcm_test PRIVATE c_std_11)
+    target_link_libraries(quirewise_audio_wave_pcm_test PRIVATE
+        Quirewise::Audio)
+    add_test(NAME quirewise_audio_wave_pcm
+        COMMAND quirewise_audio_wave_pcm_test)
 endif()
 install(TARGETS quirewise_audio EXPORT QuirewiseAudioTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"

@@ -28,8 +28,8 @@ transcoder.
   return `QW_AUDIO_UNSUPPORTED`; the library never falls back to an external
   demuxer.
 - Video parsing or decoding: MP4/Matroska support selects audio tracks only.
-- The unified `quirewise INPUT --to FORMAT` CLI (the app repository is currently
-  a composition shell).
+- The unified CLI exposes audio only through `--check` (container/packet
+  parsing); it has no audio output route.
 
 ## Dependencies and tests
 
