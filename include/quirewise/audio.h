@@ -153,6 +153,7 @@ QwAudioStatus qw_audio_reader_open(const uint8_t *data,
                                    size_t requested_track,
                                    QwAudioReader **out_reader);
 
+/*! Fill sample rate, channels and duration for an open reader. */
 QwAudioStatus qw_audio_reader_get_info(const QwAudioReader *reader,
                                        QwAudioInfo *out_info);
 
@@ -161,8 +162,10 @@ QwAudioStatus qw_audio_reader_get_info(const QwAudioReader *reader,
 QwAudioStatus qw_audio_reader_next_packet(QwAudioReader *reader,
                                           QwAudioPacket *out_packet);
 
+/*! Close an audio reader; NULL is accepted. */
 void qw_audio_reader_close(QwAudioReader *reader);
 
+/*! Return a static name for a codec id. */
 const char *qw_audio_codec_name(QwAudioCodec codec);
 
 #ifdef __cplusplus

@@ -40,12 +40,14 @@ typedef struct QwEncryptedMusicBuffer {
     size_t size;
 } QwEncryptedMusicBuffer;
 
+/*! Return the ABI version compiled into the installed audio package. */
 uint32_t qw_encrypted_music_abi_version(void);
 
 /* Detect NCM, QMC, and KGM from bytes. KWM is path-detected because its header
  * does not provide a reliable content signature. */
 QwEncryptedMusicFormat qw_encrypted_music_probe_memory(const void *data,
                                                        size_t size);
+/*! Guess the encrypted-music format from a file extension. */
 QwEncryptedMusicFormat qw_encrypted_music_format_from_path(const char *path);
 
 /* Decrypts the container and returns the encoded audio payload. The output is
@@ -58,7 +60,9 @@ QwEncryptedMusicStatus qw_encrypted_music_decrypt_buffer(
     QwEncryptedMusicBuffer *out_buffer,
     char *error,
     size_t error_capacity);
+/*! Release a buffer returned by the decrypter; NULL is accepted. */
 void qw_encrypted_music_buffer_free(QwEncryptedMusicBuffer *buffer);
+/*! Return a static human-readable name for a status code. */
 const char *qw_encrypted_music_status_string(QwEncryptedMusicStatus status);
 
 #ifdef __cplusplus
